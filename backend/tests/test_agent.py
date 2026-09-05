@@ -11,6 +11,7 @@ from app.models.entities import Base
 from app.db.repository import ChatRepository
 from app.agent.parser import AgentStreamParser
 from app.agent.orchestrator import GrowthAgentOrchestrator
+from app.agent.skills.ship30_essay import Ship30EssaySkill
 
 @pytest.fixture
 def db_session():
@@ -62,6 +63,17 @@ def test_classify_intent():
     assert orchestrator.classify_intent("Write a Ship 30 for 30 essay on founder mode") == "ship30_essay"
     assert orchestrator.classify_intent("Create an interactive HTML calculator for CAC") == "artifact"
     assert orchestrator.classify_intent("How does Brian Chesky run Airbnb?") == "grounded_qa"
+
+def test_ship30_word_count_validator():
+    too_short = Ship30EssaySkill.validate_word_count("word " * 50)
+    on_target = Ship30EssaySkill.validate_word_count("word " * 1250)
+    too_long = Ship30EssaySkill.validate_word_count("word " * 2000)
+
+    assert too_short["word_count"] == 50
+    assert too_short["within_tolerance"] is False
+    assert on_target["within_tolerance"] is True
+    assert too_long["within_tolerance"] is False
+    assert too_short["target_word_count"] == 1250
 
 @pytest.mark.anyio
 async def test_agent_orchestrator_turn_execution(db_session):

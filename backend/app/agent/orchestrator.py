@@ -102,6 +102,15 @@ class GrowthAgentOrchestrator:
         # 7. Parse Artifacts & Format Display
         parsed = AgentStreamParser.parse_response(llm_resp.content, citations=citations_data)
 
+        ship30_validation = None
+        if intent == "ship30_essay":
+            ship30_validation = Ship30EssaySkill.validate_word_count(parsed.display_text)
+            if not ship30_validation["within_tolerance"]:
+                parsed.display_text += (
+                    f"\n\n*[Ship 30 word-count check: {ship30_validation['word_count']} words "
+                    f"vs. a ~{ship30_validation['target_word_count']}-word target. Consider regenerating.]*"
+                )
+
         # 8. Persist Assistant Message & Artifacts in DB
         assistant_msg = ChatRepository.add_message(
             db=db,
@@ -133,7 +142,8 @@ class GrowthAgentOrchestrator:
                 "intent": intent,
                 "retrieved_chunks": len(retrieval_results),
                 "artifacts_created": len(parsed.artifacts),
-                "is_fallback": llm_resp.is_fallback
+                "is_fallback": llm_resp.is_fallback,
+                "ship30_validation": ship30_validation
             },
             latency_ms=latency
         )
@@ -204,6 +214,17 @@ class GrowthAgentOrchestrator:
 
         # 7. Post-Stream DB Persistence
         parsed = AgentStreamParser.parse_response(accumulated_text, citations=citations_data)
+
+        if intent == "ship30_essay":
+            ship30_validation = Ship30EssaySkill.validate_word_count(parsed.display_text)
+            if meta is not None:
+                meta["ship30_validation"] = ship30_validation
+            if not ship30_validation["within_tolerance"]:
+                parsed.display_text += (
+                    f"\n\n*[Ship 30 word-count check: {ship30_validation['word_count']} words "
+                    f"vs. a ~{ship30_validation['target_word_count']}-word target. Consider regenerating.]*"
+                )
+
         assistant_msg = ChatRepository.add_message(
             db=db,
             session_id=session_id,

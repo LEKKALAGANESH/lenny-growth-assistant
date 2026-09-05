@@ -8,6 +8,22 @@ from app.llm.groq_provider import GroqProvider
 from app.llm.gemini_provider import GeminiProvider
 from app.llm.mock_provider import MockLocalProvider
 
+# Every provider's stream_generate() yields exactly one of these as its entire
+# output on failure (bad/missing key, HTTP error, connection error) instead of
+# raising — see ollama/openai/anthropic/gemini_provider.py. check_health() only
+# verifies a key is present, not that it's actually valid, so an invalid key
+# reports "available" and this is the only signal that a hop truly failed.
+_PROVIDER_ERROR_MARKERS = (
+    "Error HTTP",
+    "connection error:",
+    "Connection error to local Ollama",
+    "is missing. Please configure it in .env",
+)
+
+
+def _is_provider_error_chunk(chunk: str) -> bool:
+    return chunk.startswith("[") and any(marker in chunk for marker in _PROVIDER_ERROR_MARKERS)
+
 class LLMManager:
     """
     Central LLM Orchestration Gateway.
@@ -175,6 +191,26 @@ class LLMManager:
                     requested_status_message = health.status_message
                 continue
 
+            # check_health() only confirms a key is present, not that it actually
+            # works — peek the first chunk so a bad/expired key (e.g. a 401) is
+            # caught here and cascades to the next hop, instead of leaking a raw
+            # "[Anthropic Error HTTP 401]"-style string into the chat as if it
+            # were the model's answer.
+            stream = hop_provider.stream_generate(
+                messages, system_prompt, model=model if hop_index == 0 else None, **kwargs
+            )
+            try:
+                first_chunk = await stream.__anext__()
+            except StopAsyncIteration:
+                first_chunk = None
+            except Exception:
+                first_chunk = None
+
+            if first_chunk is not None and _is_provider_error_chunk(first_chunk):
+                if hop_index == 0:
+                    requested_status_message = first_chunk.strip("[]")
+                continue
+
             if result_meta is not None:
                 result_meta["provider"] = hop_name
                 result_meta["is_fallback"] = hop_index > 0
@@ -186,9 +222,9 @@ class LLMManager:
                     f"Routed to fallback '{hop_name}'.]\n\n"
                 )
 
-            async for token in hop_provider.stream_generate(
-                messages, system_prompt, model=model if hop_index == 0 else None, **kwargs
-            ):
+            if first_chunk is not None:
+                yield first_chunk
+            async for token in stream:
                 yield token
             return
 

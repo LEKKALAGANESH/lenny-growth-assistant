@@ -173,13 +173,16 @@ The-Lenny-Growth-Assistant/
 │   ├── run_local.sh
 │   └── run_local.bat
 ├── docker-compose.yml         # postgres (pgvector) + backend + frontend
-├── PRD.md
-└── architecture.md
+└── docs/
+    ├── PRD.md
+    ├── architecture.md
+    └── design.md
 ```
 
 ## Documentation
 
 | Document | Purpose |
 | :--- | :--- |
-| [`PRD.md`](./PRD.md) | Product requirements, personas, jobs-to-be-done, success metrics |
-| [`architecture.md`](./architecture.md) | System architecture, hybrid RAG design, LLM routing, and security model |
+| [`docs/PRD.md`](./docs/PRD.md) | Product requirements, personas, jobs-to-be-done, success metrics |
+| [`docs/architecture.md`](./docs/architecture.md) | System architecture, hybrid RAG design, LLM routing, and security model |
+| [`docs/design.md`](./docs/design.md) | Dual-pane UI split, state transitions, and responsive behavior |
