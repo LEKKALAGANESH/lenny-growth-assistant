@@ -147,10 +147,16 @@ class GrowthAgentOrchestrator:
         user_message: str,
         llm_provider: Optional[str] = None,
         skill_override: Optional[str] = None,
-        top_k: int = 4
+        top_k: int = 4,
+        meta: Optional[dict] = None
     ) -> AsyncGenerator[str, None]:
         """
         Streams response tokens in SSE format and auto-persists completed state at end.
+
+        If `meta` is passed, it's populated in-place with the resolved
+        {"provider", "is_fallback", "requested_provider"} once the stream
+        finishes, so the caller (chat.py's SSE endpoint) can tell the client
+        which provider actually served the response.
         """
         # 1. Fetch Session
         session = ChatRepository.get_session(db, session_id)
@@ -182,14 +188,19 @@ class GrowthAgentOrchestrator:
         # 6. Stream from LLM Manager
         provider_name = llm_provider or session.llm_provider or settings.DEFAULT_LLM_PROVIDER
         accumulated_text = ""
+        stream_meta: dict = {}
 
         async for chunk in llm_manager.stream_with_fallback(
             preferred_provider=provider_name,
             messages=llm_messages,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            result_meta=stream_meta
         ):
             accumulated_text += chunk
             yield chunk
+
+        if meta is not None:
+            meta.update(stream_meta)
 
         # 7. Post-Stream DB Persistence
         parsed = AgentStreamParser.parse_response(accumulated_text, citations=citations_data)

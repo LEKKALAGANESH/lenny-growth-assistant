@@ -68,19 +68,32 @@ async def chat_stream_endpoint(payload: ChatRequest, db: Session = Depends(get_d
     session_id = payload.session_id or "new"
 
     async def event_generator():
+        stream_meta: dict = {}
+
         # SSE Event Stream
         async for chunk in agent_orchestrator.stream_turn(
             db=db,
             session_id=session_id,
             user_message=payload.message,
             llm_provider=payload.llm_provider,
-            skill_override=payload.skill
+            skill_override=payload.skill,
+            meta=stream_meta
         ):
             event_payload = json.dumps({"token": chunk})
             yield f"data: {event_payload}\n\n"
 
-        # Emit completion event
-        yield f"event: complete\ndata: {json.dumps({'status': 'done', 'session_id': session_id})}\n\n"
+        # Emit completion event, including which provider actually served the
+        # response (may differ from payload.llm_provider if it was down and the
+        # request auto-routed through the fallback chain) so the client can
+        # sync its provider selector/status badge to reality.
+        completion_payload = {
+            "status": "done",
+            "session_id": session_id,
+            "provider": stream_meta.get("provider"),
+            "is_fallback": stream_meta.get("is_fallback", False),
+            "requested_provider": stream_meta.get("requested_provider")
+        }
+        yield f"event: complete\ndata: {json.dumps(completion_payload)}\n\n"
 
     return StreamingResponse(
         event_generator(),

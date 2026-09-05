@@ -150,12 +150,18 @@ class LLMManager:
         messages: List[ChatMessage],
         system_prompt: Optional[str] = None,
         model: Optional[str] = None,
+        result_meta: Optional[dict] = None,
         **kwargs
     ) -> AsyncGenerator[str, None]:
         """
         Streams token generation from the first healthy provider in the full
         fallback chain, so an offline/down provider is skipped automatically
         instead of only falling back once to mock.
+
+        If `result_meta` is passed, it's populated in-place with
+        {"provider": <hop actually used>, "is_fallback": bool, "requested_provider": <original>}
+        once resolved, so callers (e.g. the SSE endpoint) can report the real
+        serving provider back to the client after the stream completes.
         """
         chain = self._build_chain(preferred_provider)
         requested = chain[0]
@@ -168,6 +174,11 @@ class LLMManager:
                 if hop_index == 0:
                     requested_status_message = health.status_message
                 continue
+
+            if result_meta is not None:
+                result_meta["provider"] = hop_name
+                result_meta["is_fallback"] = hop_index > 0
+                result_meta["requested_provider"] = requested
 
             if hop_index > 0:
                 yield (
@@ -183,6 +194,10 @@ class LLMManager:
 
         # Every provider reported unhealthy (should not happen since mock is always
         # available) — stream from mock as the unconditional last resort.
+        if result_meta is not None:
+            result_meta["provider"] = "mock"
+            result_meta["is_fallback"] = True
+            result_meta["requested_provider"] = requested
         async for token in self.get_provider("mock").stream_generate(messages, system_prompt, **kwargs):
             yield token
 

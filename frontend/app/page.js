@@ -146,10 +146,22 @@ export default function Home() {
           }
         }
       },
-      async () => {
+      async (completion) => {
         // Stream completed: reload session to sync finalized messages and citations
         setIsStreaming(false);
         setStreamingMessage("");
+
+        // Sync the provider selector/status badge to whichever provider actually
+        // served the response — the backend auto-routes through its fallback
+        // chain server-side, so the dropdown would otherwise keep showing the
+        // (possibly now-offline) provider the user originally picked.
+        if (completion?.provider && completion.provider !== selectedProvider) {
+          setSelectedProvider(completion.provider);
+        }
+        if (completion?.is_fallback) {
+          fetchHealth().then(setHealth).catch(() => {});
+        }
+
         await loadSession(targetSessionId);
         // Refresh session list
         const updatedList = await fetchSessions();
