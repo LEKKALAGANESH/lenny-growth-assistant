@@ -14,6 +14,12 @@ class LLMManager:
     Handles dynamic model selection, multi-provider registration,
     runtime switching, health diagnostics, and resilient fallback execution.
     """
+
+    # Default cascade used when the requested provider isn't "openai" (which uses
+    # settings.LLM_FALLBACK_ORDER instead) or has no chain of its own configured.
+    # "mock" is always appended as the guaranteed last resort if missing.
+    DEFAULT_CHAIN_ORDER = ["openai", "groq", "gemini", "anthropic", "ollama"]
+
     def __init__(self):
         self._providers: Dict[str, BaseLLMProvider] = {}
         self._initialize_providers()
@@ -74,6 +80,30 @@ class LLMManager:
                 )
         return statuses
 
+    def _build_chain(self, preferred_provider: Optional[str]) -> List[str]:
+        """
+        Builds the full ordered fallback chain for a requested provider: the
+        requested provider first, then every other registered provider as a
+        cascading safety net, always ending in "mock" as the guaranteed
+        last resort. This is what makes "all providers auto-recover when
+        down" true regardless of which provider the user picked.
+        """
+        provider_name = (preferred_provider or settings.LLM_PROVIDER or settings.DEFAULT_LLM_PROVIDER).lower()
+
+        if provider_name == "openai":
+            rest = [p.strip().lower() for p in settings.LLM_FALLBACK_ORDER.split(",") if p.strip()]
+        else:
+            rest = [p for p in self.DEFAULT_CHAIN_ORDER if p != provider_name]
+
+        chain = [provider_name] + [p for p in rest if p != provider_name and p in self._providers]
+        if provider_name not in self._providers:
+            # Unknown provider name: still try it first (get_provider() falls back to
+            # ollama/mock internally), then run the full default cascade behind it.
+            chain = [provider_name] + [p for p in self.DEFAULT_CHAIN_ORDER if p in self._providers]
+        if "mock" not in chain:
+            chain.append("mock")
+        return chain
+
     async def generate_with_fallback(
         self,
         preferred_provider: Optional[str],
@@ -83,79 +113,36 @@ class LLMManager:
         **kwargs
     ) -> LLMResponse:
         """
-        Executes generation with automatic fallback to alternate provider
-        if the primary provider is unreachable or throws an error.
+        Executes generation against the requested provider, automatically
+        cascading through every remaining provider (ending in mock) if it's
+        unreachable, rate-limited, or errors out.
         """
-        provider_name = (preferred_provider or settings.LLM_PROVIDER or settings.DEFAULT_LLM_PROVIDER).lower()
+        chain = self._build_chain(preferred_provider)
+        requested = chain[0]
+        last_err: Optional[Exception] = None
 
-        # OpenAI -> Groq -> Gemini automatic fallback chain: only engaged when the caller
-        # is targeting "openai" (explicitly, or via LLM_PROVIDER/DEFAULT_LLM_PROVIDER), so
-        # the pre-existing ollama/anthropic single-hop fallback below is untouched.
-        if provider_name == "openai":
-            chain = ["openai"] + [
-                p.strip().lower() for p in settings.LLM_FALLBACK_ORDER.split(",") if p.strip()
-            ]
-            last_err: Optional[Exception] = None
-            for hop_index, hop_name in enumerate(chain):
-                hop_provider = self.get_provider(hop_name)
-                try:
-                    resp = await hop_provider.generate(
-                        messages=messages,
-                        system_prompt=system_prompt,
-                        model=model if hop_index == 0 else None,
-                        **kwargs
+        for hop_index, hop_name in enumerate(chain):
+            hop_provider = self.get_provider(hop_name)
+            try:
+                resp = await hop_provider.generate(
+                    messages=messages,
+                    system_prompt=system_prompt,
+                    model=model if hop_index == 0 else None,
+                    **kwargs
+                )
+                if hop_index > 0:
+                    resp.is_fallback = True
+                    resp.fallback_reason = (
+                        f"Primary provider '{requested}' failed: {last_err}. "
+                        f"Gracefully routed to fallback '{hop_name}' (hop {hop_index + 1}/{len(chain)})."
                     )
-                    if hop_index > 0:
-                        resp.is_fallback = True
-                        resp.fallback_reason = (
-                            f"Primary provider 'openai' failed: {last_err}. "
-                            f"Gracefully routed to fallback '{hop_name}'."
-                        )
-                    return resp
-                except Exception as hop_err:
-                    last_err = hop_err
-                    continue
-            # Entire chain exhausted: last-resort mock fallback (mirrors the safety net
-            # the ollama/anthropic path below already relies on).
-            resp = await self.get_provider("mock").generate(
-                messages=messages, system_prompt=system_prompt, **kwargs
-            )
-            resp.is_fallback = True
-            resp.fallback_reason = (
-                f"All providers in fallback chain {chain} failed: {last_err}. "
-                f"Gracefully routed to fallback 'mock'."
-            )
-            return resp
+                return resp
+            except Exception as hop_err:
+                last_err = hop_err
+                continue
 
-        primary_provider = self.get_provider(provider_name)
-
-        try:
-            return await primary_provider.generate(
-                messages=messages,
-                system_prompt=system_prompt,
-                model=model,
-                **kwargs
-            )
-        except Exception as primary_err:
-            # Determine fallback candidate
-            fallback_name = "mock"
-            if provider_name == "ollama" and settings.ANTHROPIC_API_KEY:
-                fallback_name = "anthropic"
-            elif provider_name == "anthropic" and settings.OPENAI_API_KEY:
-                fallback_name = "openai"
-
-            fallback_provider = self.get_provider(fallback_name)
-            resp = await fallback_provider.generate(
-                messages=messages,
-                system_prompt=system_prompt,
-                **kwargs
-            )
-            resp.is_fallback = True
-            resp.fallback_reason = (
-                f"Primary provider '{provider_name}' failed: {str(primary_err)}. "
-                f"Gracefully routed to fallback '{fallback_name}'."
-            )
-            return resp
+        # Unreachable in practice: "mock" never raises, so the loop always returns above.
+        raise last_err or RuntimeError("All LLM providers exhausted with no error captured.")
 
     async def stream_with_fallback(
         self,
@@ -166,21 +153,37 @@ class LLMManager:
         **kwargs
     ) -> AsyncGenerator[str, None]:
         """
-        Streams token generation with graceful fallback error reporting.
+        Streams token generation from the first healthy provider in the full
+        fallback chain, so an offline/down provider is skipped automatically
+        instead of only falling back once to mock.
         """
-        provider_name = (preferred_provider or settings.DEFAULT_LLM_PROVIDER).lower()
-        primary_provider = self.get_provider(provider_name)
+        chain = self._build_chain(preferred_provider)
+        requested = chain[0]
+        requested_status_message = ""
 
-        health = await primary_provider.check_health()
-        if not health.is_available:
-            # Yield helpful diagnostic message, then stream from mock fallback
-            yield f"[Notice: Provider '{provider_name}' is offline ({health.status_message}). Routing to fallback engine...]\n\n"
-            fallback_provider = self.get_provider("mock")
-            async for token in fallback_provider.stream_generate(messages, system_prompt, **kwargs):
+        for hop_index, hop_name in enumerate(chain):
+            hop_provider = self.get_provider(hop_name)
+            health = await hop_provider.check_health()
+            if not health.is_available:
+                if hop_index == 0:
+                    requested_status_message = health.status_message
+                continue
+
+            if hop_index > 0:
+                yield (
+                    f"[Notice: Provider '{requested}' is offline ({requested_status_message}). "
+                    f"Routed to fallback '{hop_name}'.]\n\n"
+                )
+
+            async for token in hop_provider.stream_generate(
+                messages, system_prompt, model=model if hop_index == 0 else None, **kwargs
+            ):
                 yield token
             return
 
-        async for token in primary_provider.stream_generate(messages, system_prompt, model=model, **kwargs):
+        # Every provider reported unhealthy (should not happen since mock is always
+        # available) — stream from mock as the unconditional last resort.
+        async for token in self.get_provider("mock").stream_generate(messages, system_prompt, **kwargs):
             yield token
 
 # Global singleton instance

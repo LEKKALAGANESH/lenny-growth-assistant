@@ -42,7 +42,7 @@ async def test_models_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert "default_provider" in data
-    assert len(data["supported_providers"]) == 3
+    assert len(data["supported_providers"]) == 5
 
 @pytest.mark.anyio
 async def test_session_crud_flow():

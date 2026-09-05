@@ -7,7 +7,18 @@ export default function Navbar({
   health,
   onToggleSidebar
 }) {
-  const isOllamaOnline = health?.llm_providers?.find(p => p.provider === "ollama")?.is_available;
+  const PROVIDER_LABELS = {
+    ollama: "Ollama (Local)",
+    anthropic: "Anthropic",
+    openai: "OpenAI",
+    groq: "Groq",
+    gemini: "Gemini",
+    mock: "Offline Test Simulator"
+  };
+
+  const activeStatus = health?.llm_providers?.find(p => p.provider === selectedProvider);
+  const isActiveProviderOnline = activeStatus?.is_available ?? true;
+  const activeLabel = PROVIDER_LABELS[selectedProvider] || selectedProvider;
 
   return (
     <header className="navbar">
@@ -29,11 +40,13 @@ export default function Navbar({
       </div>
 
       <div className="navbar-controls">
-        {/* Ollama Local Status Badge */}
-        <div className="health-badge">
-          <span className={`health-dot ${isOllamaOnline ? "" : "offline"}`}></span>
+        {/* Active Provider Status Badge — reflects whichever provider is selected.
+            If it's down, the backend auto-cascades through the full fallback chain
+            (see llm/manager.py), so the badge is informational, not blocking. */}
+        <div className="health-badge" title={activeStatus?.status_message || ""}>
+          <span className={`health-dot ${isActiveProviderOnline ? "" : "offline"}`}></span>
           <span>
-            {isOllamaOnline ? "Ollama Local (Ready)" : "Ollama (Offline)"}
+            {activeLabel} {isActiveProviderOnline ? "(Ready)" : "(Offline — auto-routing to fallback)"}
           </span>
         </div>
 
@@ -46,6 +59,8 @@ export default function Navbar({
           <option value="ollama">Ollama (Local LLM)</option>
           <option value="anthropic">Anthropic Claude 3.5 Sonnet</option>
           <option value="openai">OpenAI GPT-4o</option>
+          <option value="groq">Groq (Fast Inference)</option>
+          <option value="gemini">Google Gemini</option>
           <option value="mock">Offline Test Simulator</option>
         </select>
       </div>
