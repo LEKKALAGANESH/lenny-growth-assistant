@@ -10,7 +10,12 @@ TRANSCRIPTS_DIR = DATA_DIR / "transcripts"
 INDEX_STORAGE_DIR = DATA_DIR / "storage"
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="allow")
+    # Absolute path, not ".env" — pydantic-settings resolves a relative env_file
+    # against the process's current working directory, but the documented run
+    # command is "cd backend && uvicorn app.main:app", so a relative path here
+    # silently misses the project-root .env (all cloud API keys resolve to None,
+    # every provider looks unhealthy, and requests fall straight through to mock).
+    model_config = SettingsConfigDict(env_file=str(WORKSPACE_DIR / ".env"), extra="allow")
 
     PROJECT_NAME: str = "The Lenny Growth Assistant"
     API_V1_PREFIX: str = "/api"
