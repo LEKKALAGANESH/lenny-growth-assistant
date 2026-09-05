@@ -39,13 +39,13 @@ async def list_models():
                 "id": "groq",
                 "label": "Groq (Cloud - Fast Inference)",
                 "description": "OpenAI-compatible ultra-low-latency inference. Automatic fallback #1 if OpenAI is unavailable.",
-                "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+                "models": ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
             },
             {
                 "id": "gemini",
                 "label": "Google Gemini (Cloud)",
                 "description": "Google's frontier multimodal model. Automatic fallback #2 if OpenAI and Groq are unavailable.",
-                "models": ["gemini-1.5-pro", "gemini-1.5-flash"]
+                "models": ["gemini-flash-latest", "gemini-2.5-pro"]
             }
         ]
     }

@@ -7,7 +7,7 @@ from app.llm.base import BaseLLMProvider, ChatMessage, LLMResponse, ProviderHeal
 class GeminiProvider(BaseLLMProvider):
     """Cloud LLM provider for Google Gemini (Generative Language API)."""
 
-    def __init__(self, api_key: Optional[str] = None, default_model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, default_model: str = "gemini-flash-latest"):
         super().__init__(name="gemini", default_model=default_model)
         self.api_key = api_key
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -127,5 +127,5 @@ class GeminiProvider(BaseLLMProvider):
             provider="gemini",
             is_available=True,
             status_message="Configured and ready.",
-            available_models=["gemini-1.5-flash", "gemini-1.5-pro"]
+            available_models=["gemini-flash-latest", "gemini-2.5-pro"]
         )

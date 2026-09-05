@@ -8,7 +8,7 @@ class GroqProvider(OpenAIProvider):
     HTTP logic pointed at Groq's base URL with a Groq model default.
     """
 
-    def __init__(self, api_key: Optional[str] = None, default_model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, api_key: Optional[str] = None, default_model: str = "openai/gpt-oss-20b"):
         super().__init__(api_key=api_key, default_model=default_model)
         self.name = "groq"
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -17,5 +17,5 @@ class GroqProvider(OpenAIProvider):
     async def check_health(self):
         status = await super().check_health()
         if status.is_available:
-            status.available_models = [self.default_model, "llama-3.1-8b-instant"]
+            status.available_models = [self.default_model, "openai/gpt-oss-120b"]
         return status
