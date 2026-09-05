@@ -173,10 +173,13 @@ The-Lenny-Growth-Assistant/
 │   ├── run_local.sh
 │   └── run_local.bat
 ├── docker-compose.yml         # postgres (pgvector) + backend + frontend
-└── docs/
-    ├── PRD.md
-    ├── architecture.md
-    └── design.md
+├── docs/
+│   ├── PRD.md
+│   ├── architecture.md
+│   └── design.md
+└── agent_transcripts/
+    ├── 01_initial_scaffolding.md
+    └── 02_debugging_pgvector_indexing.md
 ```
 
 ## Documentation
@@ -186,3 +189,4 @@ The-Lenny-Growth-Assistant/
 | [`docs/PRD.md`](./docs/PRD.md) | Product requirements, personas, jobs-to-be-done, success metrics |
 | [`docs/architecture.md`](./docs/architecture.md) | System architecture, hybrid RAG design, LLM routing, and security model |
 | [`docs/design.md`](./docs/design.md) | Dual-pane UI split, state transitions, and responsive behavior |
+| [`agent_transcripts/`](./agent_transcripts/) | Process log: the scaffolding/merge decision and the real debugging chain behind the current retrieval + provider-fallback implementation |

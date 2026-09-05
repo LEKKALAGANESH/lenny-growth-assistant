@@ -1,5 +1,23 @@
 "use client";
 import { useState } from "react";
+import DOMPurify from "dompurify";
+
+// The iframe already runs with sandbox="allow-scripts" and no "allow-same-origin",
+// so any script inside it executes in an opaque, unique origin with zero access to
+// the parent document, cookies, or same-origin resources — script *execution* is
+// already safe. DOMPurify here is defense-in-depth against the vectors the sandbox
+// attribute alone doesn't cover: a <base href> or <meta http-equiv="refresh"> can
+// still hijack relative links or force navigation, and DOMPurify's mutation-XSS
+// protections catch malformed markup that could otherwise smuggle content past the
+// sandbox. Scripts are explicitly kept (ADD_TAGS/ADD_ATTR) since generated
+// interactive widgets (ROI calculators, dashboards) are a core feature, not a bug —
+// stripping <script> would silently break every artifact that uses one.
+const ARTIFACT_SANITIZE_CONFIG = {
+  WHOLE_DOCUMENT: true,
+  ADD_TAGS: ["script", "style"],
+  ADD_ATTR: ["onclick", "onchange", "oninput", "onsubmit", "onload", "target"],
+  FORBID_TAGS: ["base", "meta"]
+};
 
 export default function ArtifactViewer({ artifact, onClose }) {
   const [activeTab, setActiveTab] = useState("preview"); // "preview", "code", "markdown"
@@ -8,6 +26,7 @@ export default function ArtifactViewer({ artifact, onClose }) {
   if (!artifact) return null;
 
   const isHtml = artifact.type === "html" || artifact.content?.includes("<!DOCTYPE html>") || artifact.content?.includes("<html");
+  const sanitizedHtml = isHtml ? DOMPurify.sanitize(artifact.content, ARTIFACT_SANITIZE_CONFIG) : "";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(artifact.content);
@@ -92,7 +111,7 @@ export default function ArtifactViewer({ artifact, onClose }) {
             /* Secure isolated iframe sandbox */
             <iframe
               title={artifact.title}
-              srcDoc={artifact.content}
+              srcDoc={sanitizedHtml}
               className="artifact-iframe"
               sandbox="allow-scripts"
             />
