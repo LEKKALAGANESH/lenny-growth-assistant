@@ -1,155 +1,171 @@
 # The Lenny Growth Assistant
-> **Full-Stack AI Conversational Intelligence Platform Grounded in Lenny's Podcast Transcripts**  
 
----
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688)
+![Next.js](https://img.shields.io/badge/Next.js-14.2-black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector%20%2B%20HNSW-336791)
+![Docker](https://img.shields.io/badge/deploy-docker%20compose-2496ED)
 
-## Executive Overview
+> A grounded RAG assistant over Lenny Rachitsky's podcast transcripts — hybrid retrieval, multi-provider LLM routing with automatic fallback, and a Claude-style sandboxed artifact viewer.
 
-**The Lenny Growth Assistant** is an enterprise-grade AI copilot built to deliver actionable, grounded product management and growth strategy advice. Grounded directly in transcripts from Lenny Rachitsky's podcast interviews (including **Brian Chesky**, **Elena Verna**, **Shreyas Doshi**, and **Sean Ellis**), the platform pairs hybrid RAG retrieval with dynamic multi-LLM routing (**Local Ollama**, **Claude 3.5 Sonnet**, **GPT-4o**) and a **Claude-style split-pane Artifact Viewer** for interactive widgets, PRD templates, and Ship 30 for 30 essays.
+## Overview
 
----
+The Lenny Growth Assistant answers product and growth questions using only what's actually said in Lenny's Podcast, citing every claim back to a specific episode, guest, and timestamp. It combines:
 
-## Key Architectural Capabilities
+- **Hybrid retrieval** — dense vector search (PostgreSQL + `pgvector`, HNSW-indexed) fused with BM25 lexical search via Reciprocal Rank Fusion, so exact terminology and semantic meaning are both captured.
+- **Resilient multi-LLM routing** — a configurable primary provider with automatic fallback across a priority chain (OpenAI → Groq → Gemini by default), plus local Ollama and Anthropic Claude support, so a single provider outage never takes down the assistant.
+- **Grounded citations** — every factual claim carries an inline badge like `[EP-142 • Brian Chesky @ 00:02:11]`; out-of-scope questions are refused rather than hallucinated.
+- **Claude-style artifact viewer** — long-form output (PRDs, Ship 30 for 30 essays, interactive widgets) renders in a split-pane panel inside a sandboxed `<iframe sandbox="allow-scripts">` — no `allow-same-origin`, by design.
 
-- **Strict Grounding & Anti-Hallucination**: 100% of factual assertions include inline bracketed citation badges `[EP-142 • Brian Chesky @ 00:02:11]`. Clicking any badge reveals the exact timestamp and transcript excerpt. Out-of-scope questions are gracefully refused.
-- **Claude-Style Dual-Pane Artifact Viewer**: Automatically opens an interactive right-hand panel when generating live HTML/CSS widgets, ROI calculators, or long-form PRD templates, executing inside a secure `<iframe>` (`sandbox="allow-scripts"`).
-- **Ship 30 for 30 Content Skill**: Generates high-density ~1,250-word synthesis essays structured with Hooks, 1/3/1 sentence cadences, and scannable subheadings.
-- **Hybrid Retrieval with Reciprocal Rank Fusion (RRF)**: Combines dense vector cosine similarity with BM25 lexical keyword matching to accurately capture both concepts and exact practitioner terminology.
-- **Dynamic Multi-LLM Routing**: Switch seamlessly between local zero-cost offline models (**Ollama `llama3.2` / `mistral`**) and frontier cloud models (**Claude 3.5 Sonnet / GPT-4o**) with resilient fallbacks.
-- **PostgreSQL Persistence & Session Isolation**: Multi-turn conversation history, artifact versions, and audit logs stored with automatic SQLite fallback for zero-friction local testing.
+## Architecture
 
----
+```
+┌────────────┐      SSE / REST       ┌──────────────────┐
+│  Next.js   │ ─────────────────────▶│  FastAPI backend  │
+│  frontend  │◀───────────────────── │  (agent + skills) │
+└────────────┘                       └─────────┬─────────┘
+                                                │
+                        ┌───────────────────────┼───────────────────────┐
+                        ▼                       ▼                       ▼
+              ┌──────────────────┐   ┌────────────────────┐   ┌──────────────────┐
+              │ Hybrid retriever │   │   LLM manager       │   │  Session store    │
+              │ (dense + BM25,   │   │ OpenAI → Groq →     │   │  (Postgres, with  │
+              │  RRF fusion)     │   │ Gemini fallback,    │   │  SQLite fallback) │
+              └────────┬─────────┘   │ + Ollama / Claude   │   └──────────────────┘
+                       ▼             └────────────────────┘
+              ┌──────────────────┐
+              │ PostgreSQL +     │
+              │ pgvector (HNSW)  │
+              └──────────────────┘
+```
 
-## Quickstart Guide
+## Key Capabilities
 
-### Option A: Single-Command Docker Compose (Recommended)
+| Capability | Detail |
+| :--- | :--- |
+| **Grounded Q&A** | Inline citation badges `[Episode • Guest @ Timestamp]`; refuses out-of-domain questions instead of guessing. |
+| **Hybrid RAG** | Dense cosine similarity (pgvector, HNSW index) + BM25 keyword search, merged with Reciprocal Rank Fusion. |
+| **Multi-LLM fallback** | Primary provider (default `openai`) with automatic failover through `LLM_FALLBACK_ORDER` (default `groq,gemini`) on timeout, rate limit, or provider error — plus offline `ollama` and `anthropic` support. |
+| **Ship 30 for 30 skill** | Generates ~1,250-word growth essays with hook, 1-3-1 sentence cadence, and a five-section structure. |
+| **Sandboxed artifacts** | Interactive HTML/PRD/essay output renders in an `iframe` with `sandbox="allow-scripts"` only — never `allow-same-origin`. |
+| **Health diagnostics** | `/api/health` reports live Postgres connectivity, `pgvector` extension status, HNSW index presence, embedding provider, and the active LLM fallback chain. |
+| **Session persistence** | Conversations, messages, and artifacts persisted to PostgreSQL, with automatic SQLite fallback for zero-friction local dev. |
 
-Ensure Docker Desktop is running, then run:
+## Quickstart
+
+### Option A — Docker Compose (recommended)
 
 ```bash
 docker compose up --build
 ```
 
-- **Frontend Application**: `http://localhost:3000`
-- **FastAPI API & OpenAPI Docs**: `http://localhost:8000/docs`
-- **PostgreSQL Database**: `localhost:5432`
+On container start, the backend automatically waits for Postgres, verifies the `vector` extension and HNSW index, runs migrations, ingests the sample transcripts, then serves the API.
 
----
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- API + OpenAPI docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+- PostgreSQL: `localhost:5432`
 
-### Option B: Local Development Setup
+### Option B — Local development
 
-#### 1. Backend Setup (FastAPI & Vector Ingestion)
+**Backend**
+
 ```bash
-# In project root:
 python -m pip install -r requirements.txt
 
-# Ingest & index podcast transcripts
-python -m backend.app.rag.ingestion
-
-# Start FastAPI server
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+cd backend
+python -m app.rag.ingestion                 # ingest & index the sample transcripts
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-#### 2. Frontend Setup (Next.js / JavaScript)
+**Frontend** (separate terminal)
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:3000` in your browser.
 
----
+Open [http://localhost:3000](http://localhost:3000).
 
-## Local Ollama Setup (Zero-Cost Offline Demo)
+> Windows users can also double-click `scripts/run_local.bat`; macOS/Linux, run `scripts/run_local.sh`.
 
-To run the assistant completely offline without API keys:
+## Configuration
 
-1. Install [Ollama](https://ollama.com).
-2. Pull the recommended local model:
-   ```bash
-   ollama pull llama3.2
-   ```
-3. Start the Ollama server:
-   ```bash
-   ollama serve
-   ```
-4. In the top navbar of the web UI, select **Ollama (Local LLM - llama3.2)**. The status dot will turn **green (Ready)**.
-
-*(Optional)* If Ollama is not installed or offline, the platform automatically routes requests to the **Mock Local Provider** to ensure uninterrupted evaluation.
-
----
-
-## Cloud LLM Configuration (Optional)
-
-Create a `.env` file in the project root based on `.env.example`:
+Copy `.env.example` to `.env` and fill in what you need. Nothing is required to run offline via Ollama/mock providers.
 
 ```bash
-# Cloud Providers
-ANTHROPIC_API_KEY=sk-ant-api03-...
-OPENAI_API_KEY=sk-proj-...
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lenny_assistant
 
-# Default provider on startup
-DEFAULT_LLM_PROVIDER=ollama
+# LLM providers (set only the ones you use)
+OPENAI_API_KEY=
+GROQ_API_KEY=
+GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+
+# Routing
+LLM_PROVIDER=openai
+LLM_FALLBACK_ORDER=groq,gemini
+
+# Frontend -> backend
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
----
+No API keys? Install [Ollama](https://ollama.com), run `ollama pull llama3.2 && ollama serve`, and select **Ollama** in the UI's provider switcher — the assistant runs fully offline. If Ollama isn't reachable either, requests route to a mock provider so the UI stays usable during evaluation.
 
-## Automated Test Suite (29/29 Passing)
-
-Run the full automated pytest suite covering RAG, DB, LLM abstractions, Agent skills, and FastAPI REST/SSE endpoints:
+## Testing
 
 ```bash
-python -m pytest backend/tests/ -v
+cd backend
+pytest -v
 ```
 
-### System Health Diagnostic CLI
-Run the diagnostic script to verify database connectivity, vector index search, and LLM reachability:
+Covers RAG chunking/retrieval, PostgreSQL + pgvector/HNSW persistence (skips cleanly without a live database), LLM provider abstraction and fallback chain, agent skills, and the FastAPI REST/SSE surface.
+
+Run the standalone diagnostic script for a human-readable health check:
 
 ```bash
 python scripts/verify_system.py
 ```
 
----
-
 ## Project Structure
 
 ```
-The Lenny Growth Assistant/
+The-Lenny-Growth-Assistant/
 ├── backend/
 │   ├── app/
-│   │   ├── agent/               # Agent orchestrator, skills, prompts, stream parser
-│   │   ├── api/                 # FastAPI endpoints (chat, stream, sessions, models, health)
-│   │   ├── core/                # App config & environment settings
-│   │   ├── db/                  # Database session & repository layer
-│   │   ├── llm/                 # Multi-LLM provider abstraction (Ollama, Claude, OpenAI, Mock)
-│   │   ├── models/              # SQLAlchemy persistence entities
-│   │   ├── rag/                 # Transcript parser, chunker, embeddings, hybrid retriever
-│   │   ├── schemas/             # Pydantic validation schemas
-│   │   └── main.py              # FastAPI app factory & CORS
-│   ├── tests/                   # 29 automated test cases (pytest)
-│   └── Dockerfile               # Backend Docker container
+│   │   ├── agent/            # Orchestrator, skills (grounded QA, Ship30, artifacts), prompts
+│   │   ├── api/endpoints/    # chat, chat/stream (SSE), sessions, models, health
+│   │   ├── core/             # Settings & environment config
+│   │   ├── db/               # Session/engine setup, repository layer
+│   │   ├── llm/              # Provider abstraction: OpenAI, Groq, Gemini, Anthropic, Ollama, mock
+│   │   ├── models/           # SQLAlchemy entities, incl. pgvector + HNSW chunk model
+│   │   ├── rag/              # Parser, chunker, embeddings, hybrid (dense+BM25) retriever
+│   │   ├── schemas/          # Pydantic request/response models
+│   │   ├── startup_check.py  # Container-start DB/pgvector/HNSW readiness checks
+│   │   └── main.py           # FastAPI app factory & CORS
+│   ├── tests/                # pytest suite
+│   └── Dockerfile
 ├── data/
-│   ├── transcripts/             # Podcast transcripts (Chesky, Verna, Doshi, Ellis)
-│   └── storage/                 # Persistent vector store & fallback SQLite DB
+│   ├── transcripts/          # Sample podcast transcripts (Chesky, Verna, Doshi, Ellis)
+│   └── storage/              # SQLite/vector fallback storage for local dev
 ├── frontend/
-│   ├── app/                     # Next.js App Router (layout.js, page.js, globals.css)
-│   ├── components/              # Claude-style ArtifactViewer, ChatPane, Navbar, Sidebar
-│   ├── lib/                     # SSE streaming client & constants
-│   └── Dockerfile               # Multi-stage Next.js Docker container
+│   ├── app/                  # Next.js App Router
+│   ├── components/           # ArtifactViewer, ChatPane, Navbar, Sidebar, CitationModal
+│   ├── lib/api.js            # Backend API client (REST + SSE streaming)
+│   └── Dockerfile
 ├── scripts/
-│   ├── verify_system.py         # End-to-end diagnostic runner
-│   ├── run_local.bat            # Windows one-click launcher
-│   └── run_local.sh             # Unix one-click launcher
-├── docker-compose.yml           # Multi-container orchestration
-├── PRD.md                       # Product Requirements Document
-├── architecture.md              # Technical Architecture & Security Specification
+│   ├── verify_system.py
+│   ├── run_local.sh
+│   └── run_local.bat
+├── docker-compose.yml         # postgres (pgvector) + backend + frontend
+├── PRD.md
+└── architecture.md
 ```
 
----
-
-## Documentation Deliverables Index
+## Documentation
 
 | Document | Purpose |
 | :--- | :--- |
-| **[`PRD.md`](./PRD.md)** | Product Requirements Document, Personas, JTBDs, and Success KPIs |
-| **[`architecture.md`](./architecture.md)** | End-to-End System Architecture, Hybrid RAG, Multi-LLM Routing & Security |
+| [`PRD.md`](./PRD.md) | Product requirements, personas, jobs-to-be-done, success metrics |
+| [`architecture.md`](./architecture.md) | System architecture, hybrid RAG design, LLM routing, and security model |
