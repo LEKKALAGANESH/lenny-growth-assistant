@@ -4,6 +4,8 @@ from app.llm.base import BaseLLMProvider, ChatMessage, LLMResponse, ProviderHeal
 from app.llm.ollama_provider import OllamaProvider
 from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.openai_provider import OpenAIProvider
+from app.llm.groq_provider import GroqProvider
+from app.llm.gemini_provider import GeminiProvider
 from app.llm.mock_provider import MockLocalProvider
 
 class LLMManager:
@@ -31,6 +33,16 @@ class LLMManager:
         # OpenAI Cloud Provider
         self._providers["openai"] = OpenAIProvider(
             api_key=settings.OPENAI_API_KEY
+        )
+
+        # Groq Cloud Provider (OpenAI-compatible, used as fallback #1)
+        self._providers["groq"] = GroqProvider(
+            api_key=settings.GROQ_API_KEY
+        )
+
+        # Gemini Cloud Provider (used as fallback #2)
+        self._providers["gemini"] = GeminiProvider(
+            api_key=settings.GEMINI_API_KEY
         )
 
         # Mock / Test Provider
@@ -74,7 +86,47 @@ class LLMManager:
         Executes generation with automatic fallback to alternate provider
         if the primary provider is unreachable or throws an error.
         """
-        provider_name = (preferred_provider or settings.DEFAULT_LLM_PROVIDER).lower()
+        provider_name = (preferred_provider or settings.LLM_PROVIDER or settings.DEFAULT_LLM_PROVIDER).lower()
+
+        # OpenAI -> Groq -> Gemini automatic fallback chain: only engaged when the caller
+        # is targeting "openai" (explicitly, or via LLM_PROVIDER/DEFAULT_LLM_PROVIDER), so
+        # the pre-existing ollama/anthropic single-hop fallback below is untouched.
+        if provider_name == "openai":
+            chain = ["openai"] + [
+                p.strip().lower() for p in settings.LLM_FALLBACK_ORDER.split(",") if p.strip()
+            ]
+            last_err: Optional[Exception] = None
+            for hop_index, hop_name in enumerate(chain):
+                hop_provider = self.get_provider(hop_name)
+                try:
+                    resp = await hop_provider.generate(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        model=model if hop_index == 0 else None,
+                        **kwargs
+                    )
+                    if hop_index > 0:
+                        resp.is_fallback = True
+                        resp.fallback_reason = (
+                            f"Primary provider 'openai' failed: {last_err}. "
+                            f"Gracefully routed to fallback '{hop_name}'."
+                        )
+                    return resp
+                except Exception as hop_err:
+                    last_err = hop_err
+                    continue
+            # Entire chain exhausted: last-resort mock fallback (mirrors the safety net
+            # the ollama/anthropic path below already relies on).
+            resp = await self.get_provider("mock").generate(
+                messages=messages, system_prompt=system_prompt, **kwargs
+            )
+            resp.is_fallback = True
+            resp.fallback_reason = (
+                f"All providers in fallback chain {chain} failed: {last_err}. "
+                f"Gracefully routed to fallback 'mock'."
+            )
+            return resp
+
         primary_provider = self.get_provider(provider_name)
 
         try:

@@ -28,14 +28,22 @@ class Settings(BaseSettings):
     SPARSE_WEIGHT: float = 0.4
     
     # LLM Settings
-    DEFAULT_LLM_PROVIDER: str = "ollama"  # "ollama", "anthropic", "openai"
+    DEFAULT_LLM_PROVIDER: str = "ollama"  # "ollama", "anthropic", "openai", "groq", "gemini"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2"
-    
+
+    # Optional override of the primary cloud provider used by the OpenAI -> Groq -> Gemini
+    # automatic fallback chain (generate_with_fallback). Leave unset to preserve existing
+    # behavior (DEFAULT_LLM_PROVIDER / explicit preferred_provider still drive everything else).
+    LLM_PROVIDER: Optional[str] = None
+    LLM_FALLBACK_ORDER: str = "groq,gemini"
+
     # Cloud API Keys (optional for local demo)
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
-    
+    GROQ_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
+
     # Database Settings
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/lenny_assistant"
 

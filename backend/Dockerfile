@@ -26,8 +26,9 @@ ENV TRANSCRIPTS_DIR=/app/data/transcripts
 
 EXPOSE 8000
 
-# Run ingestion (creates the pgvector extension/HNSW index and indexes transcripts
-# into Postgres) then start the API. Must run at container start, not build time —
-# the postgres service (depends_on: condition service_healthy) isn't reachable during
-# `docker build`.
-CMD ["sh", "-c", "python -m app.rag.ingestion && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Startup sequence: (1) wait for Postgres + verify pgvector/HNSW index
+# (app/startup_check.py), (2) ingest transcripts (creates the pgvector extension/HNSW
+# index if missing and indexes transcripts into Postgres), (3) start the API. Must run
+# at container start, not build time — the postgres service (depends_on: condition
+# service_healthy) isn't reachable during `docker build`.
+CMD ["sh", "-c", "python -m app.startup_check && python -m app.rag.ingestion && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

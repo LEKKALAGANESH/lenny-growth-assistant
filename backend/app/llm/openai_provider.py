@@ -10,6 +10,10 @@ class OpenAIProvider(BaseLLMProvider):
     def __init__(self, api_key: Optional[str] = None, default_model: str = "gpt-4o"):
         super().__init__(name="openai", default_model=default_model)
         self.api_key = api_key
+        # Subclasses (e.g. GroqProvider) override these to reuse this OpenAI-compatible
+        # chat-completions implementation against a different endpoint/provider.
+        self.base_url = "https://api.openai.com/v1/chat/completions"
+        self.env_var_name = "OPENAI_API_KEY"
 
     def _format_messages(self, messages: List[ChatMessage], system_prompt: Optional[str] = None) -> List[dict]:
         formatted = []
@@ -29,7 +33,7 @@ class OpenAIProvider(BaseLLMProvider):
         **kwargs
     ) -> LLMResponse:
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY is not configured in .env")
+            raise ValueError(f"{self.env_var_name} is not configured in .env")
 
         start_time = time.time()
         target_model = model or self.default_model
@@ -45,9 +49,9 @@ class OpenAIProvider(BaseLLMProvider):
         }
 
         async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+            resp = await client.post(self.base_url, headers=headers, json=payload)
             if resp.status_code != 200:
-                raise RuntimeError(f"OpenAI API error ({resp.status_code}): {resp.text}")
+                raise RuntimeError(f"{self.name} API error ({resp.status_code}): {resp.text}")
 
             data = resp.json()
             choice = data.get("choices", [{}])[0]
@@ -57,7 +61,7 @@ class OpenAIProvider(BaseLLMProvider):
 
             return LLMResponse(
                 content=content,
-                provider="openai",
+                provider=self.name,
                 model=target_model,
                 prompt_tokens=usage.get("prompt_tokens", 0),
                 completion_tokens=usage.get("completion_tokens", 0),
@@ -74,7 +78,7 @@ class OpenAIProvider(BaseLLMProvider):
         **kwargs
     ) -> AsyncGenerator[str, None]:
         if not self.api_key:
-            yield "[Error: OPENAI_API_KEY is missing. Please configure it in .env or switch to Ollama]"
+            yield f"[Error: {self.env_var_name} is missing. Please configure it in .env or switch to Ollama]"
             return
 
         target_model = model or self.default_model
@@ -92,9 +96,9 @@ class OpenAIProvider(BaseLLMProvider):
 
         try:
             async with httpx.AsyncClient(timeout=90.0) as client:
-                async with client.stream("POST", "https://api.openai.com/v1/chat/completions", headers=headers, json=payload) as resp:
+                async with client.stream("POST", self.base_url, headers=headers, json=payload) as resp:
                     if resp.status_code != 200:
-                        yield f"[OpenAI Error HTTP {resp.status_code}]"
+                        yield f"[{self.name} Error HTTP {resp.status_code}]"
                         return
 
                     async for line in resp.aiter_lines():
@@ -111,17 +115,17 @@ class OpenAIProvider(BaseLLMProvider):
                             except json.JSONDecodeError:
                                 continue
         except Exception as e:
-            yield f"[OpenAI connection error: {str(e)}]"
+            yield f"[{self.name} connection error: {str(e)}]"
 
     async def check_health(self) -> ProviderHealthStatus:
         if not self.api_key:
             return ProviderHealthStatus(
-                provider="openai",
+                provider=self.name,
                 is_available=False,
                 status_message="API Key not configured."
             )
         return ProviderHealthStatus(
-            provider="openai",
+            provider=self.name,
             is_available=True,
             status_message="Configured and ready.",
             available_models=["gpt-4o", "gpt-4o-mini"]
