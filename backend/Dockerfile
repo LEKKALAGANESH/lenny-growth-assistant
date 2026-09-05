@@ -24,10 +24,10 @@ ENV PYTHONPATH=/app
 ENV STORAGE_PATH=/app/data/storage
 ENV TRANSCRIPTS_DIR=/app/data/transcripts
 
-# Run ingestion indexing on container build / boot
-RUN python -m app.rag.ingestion
-
 EXPOSE 8000
 
-# Start FastAPI production ASGI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run ingestion (creates the pgvector extension/HNSW index and indexes transcripts
+# into Postgres) then start the API. Must run at container start, not build time —
+# the postgres service (depends_on: condition service_healthy) isn't reachable during
+# `docker build`.
+CMD ["sh", "-c", "python -m app.rag.ingestion && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

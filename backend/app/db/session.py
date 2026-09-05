@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Generator
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from app.core.config import settings
 from app.models.entities import Base
@@ -32,8 +32,13 @@ engine = get_database_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db(bind_engine=None) -> None:
-    """Initializes all database tables."""
+    """Initializes all database tables. On Postgres, also enables the pgvector
+    extension first so the transcript_chunks HNSW vector index can be created."""
     target_engine = bind_engine or engine
+    if target_engine.dialect.name == "postgresql":
+        with target_engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
     Base.metadata.create_all(bind=target_engine)
 
 def get_db() -> Generator[Session, None, None]:

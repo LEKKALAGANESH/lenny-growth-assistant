@@ -1,7 +1,7 @@
 services:
   # 1. PostgreSQL Relational Persistence
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: lenny-postgres
     restart: unless-stopped
     environment:

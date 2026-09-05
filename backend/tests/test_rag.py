@@ -12,6 +12,13 @@ from app.rag.embeddings import LocalDenseEmbeddingProvider
 from app.rag.vector_store import PersistentVectorStore
 from app.rag.hybrid_retriever import HybridRetriever
 from app.rag.grounding import GroundingEngine
+from app.db.session import engine
+
+requires_postgres = pytest.mark.skipif(
+    engine.dialect.name != "postgresql",
+    reason="No live Postgres/pgvector instance configured (DATABASE_URL fell back to SQLite) — "
+           "run `docker compose up postgres` and point DATABASE_URL at it to exercise this test."
+)
 
 @pytest.fixture
 def sample_episode():
@@ -125,3 +132,61 @@ def test_grounding_citations():
     grounded_context = GroundingEngine.format_grounded_context(results)
     assert "SOURCE [1]" in grounded_context
     assert "Shreyas Doshi" in grounded_context
+
+
+@requires_postgres
+def test_pgvector_storage_round_trip(tmp_path, sample_episode):
+    """Chunks + embeddings persisted via PersistentVectorStore land in Postgres'
+    transcript_chunks table and are retrievable through the pgvector HNSW index."""
+    store = PersistentVectorStore(storage_path=tmp_path)
+    store.clear()
+    chunker = TranscriptChunker()
+    chunks = chunker.chunk_episode(sample_episode)
+    provider = LocalDenseEmbeddingProvider()
+    embeddings = provider.embed_texts([c.full_content for c in chunks])
+
+    store.add_chunks(chunks, embeddings)
+    assert store.use_postgres is True
+    assert store.count() == len(chunks)
+
+    q_emb = provider.embed_query("product-market fit survey 40%")
+    results = store.search(q_emb, top_k=1)
+    assert len(results) == 1
+    matched_chunk, score = results[0]
+    assert matched_chunk.episode_id == "ep-test"
+    assert 0.0 <= score <= 1.0
+    store.clear()
+
+
+@requires_postgres
+def test_pgvector_hybrid_retrieval_combines_dense_and_sparse():
+    """Against the real ingested corpus, hybrid retrieval must return results ranked
+    by RRF of the pgvector dense search and the BM25 sparse search."""
+    store = PersistentVectorStore(storage_path=settings.STORAGE_PATH)
+    provider = LocalDenseEmbeddingProvider()
+    retriever = HybridRetriever(vector_store=store, embedding_provider=provider)
+
+    results = retriever.retrieve("Founder Mode and Brian Chesky running Airbnb", top_k=2)
+    assert len(results) > 0
+    top_chunk, rrf_score, breakdown = results[0]
+    assert rrf_score > 0
+    assert "dense_score" in breakdown and "sparse_score" in breakdown
+
+
+@requires_postgres
+def test_pgvector_ingestion_metadata(sample_episode):
+    """Ingested rows carry the episode/guest/timestamp metadata the citation
+    formatter (grounding.py) depends on."""
+    store = PersistentVectorStore(storage_path=settings.STORAGE_PATH)
+    store.clear()
+    chunker = TranscriptChunker()
+    chunks = chunker.chunk_episode(sample_episode)
+    provider = LocalDenseEmbeddingProvider()
+    embeddings = provider.embed_texts([c.full_content for c in chunks])
+    store.add_chunks(chunks, embeddings)
+
+    loaded = store.chunks[0]
+    assert loaded.episode_id == "ep-test"
+    assert loaded.guest == "Growth Expert"
+    assert loaded.timestamp_start == "00:00:10"
+    store.clear()

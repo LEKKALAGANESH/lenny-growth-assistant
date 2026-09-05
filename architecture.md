@@ -33,8 +33,8 @@ graph TD
     end
 
     subgraph Storage [Data & Persistence Layer]
-        PG[(PostgreSQL 16 / SQLite Fallback)]
-        VectorDB[(Persistent Vector Store: Cosine Index)]
+        PG[(PostgreSQL 16 + pgvector / SQLite Fallback)]
+        VectorDB[(transcript_chunks: pgvector HNSW cosine index)]
         Corpus[(Transcript JSON Corpus)]
     end
 
@@ -69,11 +69,20 @@ graph TD
 
 ### 2.2 Hybrid Retrieval with Reciprocal Rank Fusion (RRF)
 To balance semantic conceptual matching (e.g., *"protecting craft agency"*) and keyword terminology (e.g., *"LNO framework"*, *"40% PMF rule"*), retrieval combines:
-1. **Dense Vector Search**: Normalized cosine similarity over dense embedding representations.
+1. **Dense Vector Search**: `transcript_chunks.embedding` (pgvector `VECTOR(384)`) queried via
+   SQLAlchemy's `cosine_distance()` operator (`<=>`), ranked using pgvector's **HNSW** index
+   (`m=16, ef_construction=64, vector_cosine_ops`) for approximate nearest-neighbor search at scale.
 2. **Sparse Lexical Search**: BM25Okapi keyword matching over tokenized transcript stems.
 3. **Reciprocal Rank Fusion (RRF)**:
    $$\text{Score}_{\text{RRF}}(d) = \frac{w_{\text{dense}}}{k + \text{rank}_{\text{dense}}(d)} + \frac{w_{\text{sparse}}}{k + \text{rank}_{\text{sparse}}(d)}$$
    where $k = 60$, $w_{\text{dense}} = 0.6$, and $w_{\text{sparse}} = 0.4$.
+
+**Local dev fallback**: `app/rag/vector_store.py` detects the SQLAlchemy engine dialect at
+startup. If `DATABASE_URL` isn't a reachable Postgres instance (matching the same
+Postgres→SQLite fallback `app/db/session.py` already does for the chat DB), it transparently
+degrades to a flat JSON file + numpy cosine similarity so `pytest` and local dev work without
+Docker. Production (`docker-compose.yml`, `pgvector/pgvector:pg16` image) always uses the
+pgvector/HNSW path.
 
 ---
 

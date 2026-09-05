@@ -5,6 +5,7 @@ from app.rag.parser import TranscriptParser
 from app.rag.chunker import TranscriptChunker
 from app.rag.embeddings import get_embedding_provider
 from app.rag.vector_store import PersistentVectorStore
+from app.db.session import init_db
 
 def run_ingestion() -> dict:
     print("=" * 60)
@@ -12,6 +13,10 @@ def run_ingestion() -> dict:
     print("=" * 60)
     print(f"Directory: {settings.TRANSCRIPTS_PATH}")
     print(f"Storage:   {settings.STORAGE_PATH}")
+
+    # Ensure the pgvector extension + transcript_chunks (HNSW-indexed) table exist
+    # before writing to them. No-op if we're on the JSON fallback (non-Postgres).
+    init_db()
 
     # 1. Load raw transcripts
     episodes = TranscriptParser.load_all_transcripts(settings.TRANSCRIPTS_PATH)
@@ -53,7 +58,7 @@ def run_ingestion() -> dict:
         "episodes_count": len(episodes),
         "chunks_count": len(chunks),
         "embedding_dim": len(embeddings[0]) if embeddings else 0,
-        "storage_file": str(vector_store.index_file)
+        "storage_file": str(vector_store.index_file) if not vector_store.use_postgres else "postgres:transcript_chunks"
     }
     print("=" * 60)
     print("[+] Ingestion Complete!")

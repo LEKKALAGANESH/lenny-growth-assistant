@@ -1,8 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from sqlalchemy import String, Text, DateTime, ForeignKey, Integer, Float, JSON
+from sqlalchemy import String, Text, DateTime, ForeignKey, Integer, Float, JSON, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
+
+# Dimension of the local dense embedding provider (app/rag/embeddings.py). Kept as a
+# constant here (rather than importing settings) to avoid a models -> core import cycle.
+EMBEDDING_DIM = 384
 
 class Base(DeclarativeBase):
     pass
@@ -64,6 +69,38 @@ class ArtifactModel(Base):
 
     # Relationships
     session: Mapped["SessionModel"] = relationship("SessionModel", back_populates="artifacts")
+
+class ChunkModel(Base):
+    """
+    Persistent podcast transcript chunk with a pgvector embedding column.
+    Backs app/rag/vector_store.py's Postgres-backed retrieval path (dense ANN search
+    via the HNSW index below, combined with BM25 keyword search in hybrid_retriever.py).
+    """
+    __tablename__ = "transcript_chunks"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)  # matches Chunk.chunk_id
+    episode_id: Mapped[str] = mapped_column(String(50), index=True)
+    episode_title: Mapped[str] = mapped_column(String(255))
+    guest: Mapped[str] = mapped_column(String(255))
+    speaker: Mapped[str] = mapped_column(String(255))
+    timestamp_start: Mapped[str] = mapped_column(String(20))
+    timestamp_end: Mapped[str] = mapped_column(String(20))
+    text: Mapped[str] = mapped_column(Text)
+    contextual_header: Mapped[str] = mapped_column(Text)
+    full_content: Mapped[str] = mapped_column(Text)
+    chunk_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    embedding: Mapped[List[float]] = mapped_column(Vector(EMBEDDING_DIM))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        Index(
+            "ix_transcript_chunks_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
 
 class AuditLogModel(Base):
     __tablename__ = "audit_logs"
