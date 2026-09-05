@@ -1,0 +1,46 @@
+{
+  "episode_id": "ep-77",
+  "title": "Sean Ellis on Finding Product-Market Fit, the 40% Rule, and Growth Sprints",
+  "guest": "Sean Ellis",
+  "guest_title": "Author of Hacking Growth, Coined 'Growth Hacking', former Dropbox & Eventbrite",
+  "date": "2023-01-19",
+  "topics": ["Product-Market Fit", "PMF", "Growth Hacking", "North Star Metric", "Aha Moment", "Growth Sprints", "Experimentation"],
+  "utterances": [
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:00:15",
+      "timestamp_end": "00:00:40",
+      "text": "Welcome to Lenny's Podcast. Today my guest is Sean Ellis. Sean coined the phrase 'growth hacking' and helped Dropbox, Eventbrite, and LogMeIn scale to multi-billion dollar valuations. Sean, how do you mathematically measure whether a startup has truly achieved Product-Market Fit?"
+    },
+    {
+      "speaker": "Sean Ellis",
+      "timestamp_start": "00:00:41",
+      "timestamp_end": "00:02:15",
+      "text": "I developed the PMF survey benchmark: you ask users who have experienced the core product in the last 2 weeks: 'How would you feel if you could no longer use this product?' with four options: 1) Very disappointed, 2) Somewhat disappointed, 3) Not disappointed, or 4) I no longer use it. Across hundreds of companies, if more than 40% of users answer 'Very disappointed', you have sufficient Product-Market Fit to pour fuel on the growth engine. If you are under 40%, paid marketing and aggressive growth tactics will simply accelerate churn and burn capital."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:02:16",
+      "timestamp_end": "00:02:45",
+      "text": "What is the single biggest growth mistake early-stage teams make when trying to find their North Star Metric?"
+    },
+    {
+      "speaker": "Sean Ellis",
+      "timestamp_start": "00:02:46",
+      "timestamp_end": "00:04:20",
+      "text": "The biggest mistake is picking a vanity metric like Registered Users or Page Views. Your North Star Metric must measure two things simultaneously: 1) Value delivered to the customer, and 2) Value captured by your business. For Airbnb, it was 'Nights Booked'—because a night booked represents value for the guest, income for the host, and commission for Airbnb. For Dropbox, it was 'Files Saved in Active Folders'. When every team aligns behind a true North Star Metric, growth becomes a coordinated loop rather than random marketing hacks."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:04:21",
+      "timestamp_end": "00:04:50",
+      "text": "How do high-performing growth teams run weekly Growth Sprints?"
+    },
+    {
+      "speaker": "Sean Ellis",
+      "timestamp_start": "00:04:51",
+      "timestamp_end": "00:06:30",
+      "text": "A growth sprint is a continuous 7-day cycle with 4 steps: 1) Ideation, 2) Prioritization using the ICE framework (Impact, Confidence, Ease), 3) Testing/Execution, and 4) Analysis. High-growth startups run 5 to 10 experiments per week. Growth is not about one lucky viral video; growth is about compound interest on dozens of small validated experiments running every single week."
+    }
+  ]
+}

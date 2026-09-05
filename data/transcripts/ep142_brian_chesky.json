@@ -1,0 +1,58 @@
+{
+  "episode_id": "ep-142",
+  "title": "Brian Chesky on Founder Mode, Designing for Trust, and How Airbnb Operates",
+  "guest": "Brian Chesky",
+  "guest_title": "Co-founder & CEO of Airbnb",
+  "date": "2024-09-08",
+  "topics": ["Founder Mode", "Product Management", "Leadership", "Culture", "Design", "Brand Marketing"],
+  "utterances": [
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:00:15",
+      "timestamp_end": "00:00:45",
+      "text": "Welcome to Lenny's Podcast. Today my guest is Brian Chesky, co-founder and CEO of Airbnb. Brian recently gave a talk at Y Combinator that set the tech world on fire about 'Founder Mode' versus 'Manager Mode'. Brian, welcome back to the show."
+    },
+    {
+      "speaker": "Brian Chesky",
+      "timestamp_start": "00:00:46",
+      "timestamp_end": "00:01:40",
+      "text": "Thanks for having me, Lenny. The response to that talk has been unbelievable. For years, founders were taught a conventional playbook: as your company scales, you're supposed to hire professional managers, delegate everything, empower them, and get out of the way. And what happened to almost every founder who did that? The company turned into a bureaucracy, the product got worse, innovation stalled, and the founder felt alienated from their own creation."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:01:41",
+      "timestamp_end": "00:02:10",
+      "text": "What specifically is Founder Mode, and how does it differ from traditional management?"
+    },
+    {
+      "speaker": "Brian Chesky",
+      "timestamp_start": "00:02:11",
+      "timestamp_end": "00:03:30",
+      "text": "Founder Mode means you do not run the company through a series of disconnected business units where you only look at spreadsheets and metrics. In Founder Mode, you are in the details. You do skip-level meetings. You review the actual product and design decisions every single week. At Airbnb, we got rid of the traditional classic product management structure and combined product management with product marketing. Every single product launch happens on a coordinated roadmap twice a year—our Summer Release and Winter Release."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:03:31",
+      "timestamp_end": "00:04:05",
+      "text": "Some people hear this and say: isn't that just micromanagement? How do you draw the line between micromanagement and high-conviction product leadership?"
+    },
+    {
+      "speaker": "Brian Chesky",
+      "timestamp_start": "00:04:06",
+      "timestamp_end": "00:05:40",
+      "text": "Micromanagement is when you tell someone how to do something, but you have no context, no taste, and you add friction without adding value. Founder Mode is when you know the details better than anyone, you hold the highest standard for quality, and you remove friction so great work can ship fast. Steve Jobs was famous for this. He wasn't hands-off. He was in the design studio every Wednesday. If you are a founder and you don't know what is shipping in your next release, you are not managing—you are abdicating."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:05:41",
+      "timestamp_end": "00:06:15",
+      "text": "Airbnb made a dramatic shift in marketing a few years ago, shifting away from Google performance marketing to brand marketing and PR. How did that work out?"
+    },
+    {
+      "speaker": "Brian Chesky",
+      "timestamp_start": "00:06:16",
+      "timestamp_end": "00:07:45",
+      "text": "When COVID hit, our revenue dropped 80% in eight weeks. We had to cut spending drastically, so we turned off almost all our performance marketing. And you know what happened? Over 90% of our traffic returned anyway. We realized we were buying traffic we already had. So we changed our entire strategy: we shifted budget to brand marketing, storytelling, PR, and product releases. Today, over 90% of Airbnb's traffic remains direct and unpaid. Growth teams often over-index on performance marketing because it's easily measurable in the short term, but brand and product excellence build sustainable compounding moats."
+    }
+  ]
+}

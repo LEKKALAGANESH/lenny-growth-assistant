@@ -1,0 +1,46 @@
+{
+  "episode_id": "ep-118",
+  "title": "Elena Verna on B2B Product-Led Growth, Why Sales-Led Is Dead, and Growth Loops",
+  "guest": "Elena Verna",
+  "guest_title": "Head of Growth & Growth Advisor (Miro, Amplitude, Dropbox, Lovable)",
+  "date": "2023-11-14",
+  "topics": ["Product-Led Growth", "PLG", "Product-Led Sales", "PLS", "Monetization", "Growth Loops", "Freemium", "B2B SaaS"],
+  "utterances": [
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:00:10",
+      "timestamp_end": "00:00:35",
+      "text": "Welcome to Lenny's Podcast. Today my guest is Elena Verna. Elena is one of the most respected growth advisors in tech, having worked with Miro, Amplitude, Dropbox, SurveyMonkey, and Netlify. Elena, let's start with Product-Led Growth in B2B. Why do so many companies get PLG wrong?"
+    },
+    {
+      "speaker": "Elena Verna",
+      "timestamp_start": "00:00:36",
+      "timestamp_end": "00:02:10",
+      "text": "The biggest mistake companies make is treating Product-Led Growth as just a self-serve checkout or a freemium tier. PLG is not a pricing model; PLG is a go-to-market motion where the product itself drives acquisition, activation, retention, and monetization. If your user has to talk to a human sales rep just to experience the core value proposition of your software, you are not product-led—you are a sales-led company with a pretty landing page."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:02:11",
+      "timestamp_end": "00:02:40",
+      "text": "What is the relationship between Product-Led Growth (PLG) and Product-Led Sales (PLS)?"
+    },
+    {
+      "speaker": "Elena Verna",
+      "timestamp_start": "00:02:41",
+      "timestamp_end": "00:04:15",
+      "text": "PLG and PLS are not opposing strategies; they are complementary stages of the same funnel. PLG creates bottom-up adoption: individual knowledge workers start using the product for free to solve their immediate pain point. As usage expands across multiple users and teams inside an enterprise, you hit a tipping point where security, governance, team billing, and compliance become necessary. That is where Product-Led Sales (PLS) steps in. Sales reps don't do cold outreach; they reach out to Product Qualified Accounts (PQAs) that already love and actively use the product."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:04:16",
+      "timestamp_end": "00:04:45",
+      "text": "How should growth teams decide between a Freemium model versus a 14-day Free Trial?"
+    },
+    {
+      "speaker": "Elena Verna",
+      "timestamp_start": "00:04:46",
+      "timestamp_end": "00:06:20",
+      "text": "Freemium is an acquisition strategy; Free Trial is a conversion strategy. If your product has high viral or collaboration loops—like Miro, Figma, or Loom—you want Freemium because the free users become your distribution channel by inviting colleagues. If your product has high marginal server costs, lacks viral loops, and delivers immediate value in the first 24 hours, a time-boxed Free Trial with credit card upfront or reverse trial is usually superior. A Reverse Trial gives users 14 days of all enterprise features, and if they don't buy, drops them into a generous free tier."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+services:
+  # 1. PostgreSQL Relational Persistence
+  postgres:
+    image: postgres:16-alpine
+    container_name: lenny-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lenny_user
+      POSTGRES_PASSWORD: lenny_password
+      POSTGRES_DB: lenny_growth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lenny_user -d lenny_growth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. FastAPI AI Engine & RAG Retrieval
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: lenny-backend
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://lenny_user:lenny_password@postgres:5432/lenny_growth_db
+      - DEFAULT_LLM_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=llama3.2
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - vector_storage:/app/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # 3. Next.js (JavaScript) Web Application
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: lenny-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  vector_storage:

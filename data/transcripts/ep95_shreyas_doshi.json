@@ -1,0 +1,46 @@
+{
+  "episode_id": "ep-95",
+  "title": "Shreyas Doshi on High Agency, Pre-mortems, Product Sense, and Career Frameworks",
+  "guest": "Shreyas Doshi",
+  "guest_title": "Product Leader & Executive Coach (former Stripe, Twitter, Google, Yahoo)",
+  "date": "2023-05-18",
+  "topics": ["Product Management", "High Agency", "LNO Framework", "Pre-mortems", "Product Sense", "Strategy", "Prioritization"],
+  "utterances": [
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:00:12",
+      "timestamp_end": "00:00:40",
+      "text": "Welcome to Lenny's Podcast. Today my guest is Shreyas Doshi. Shreyas is legendary in the product management community for his frameworks on high agency, product sense, and task prioritization. Shreyas, what is the LNO framework, and how should product managers use it to manage their time?"
+    },
+    {
+      "speaker": "Shreyas Doshi",
+      "timestamp_start": "00:00:41",
+      "timestamp_end": "00:02:30",
+      "text": "Most PMs feel chronically overwhelmed because they treat every task with the same level of perfection. The LNO framework categorizes your work into three buckets: L for Leverage, N for Neutral, and O for Overhead. Leverage tasks are high-impact activities where doing a 10x job creates a 10x return—like product strategy, critical roadmap decisions, or hiring key leaders. Neutral tasks are necessary work where doing a good job is enough, but doing an extraordinary job has diminishing returns—like weekly status reports or sprint planning. Overhead tasks are administrative chores where you should do just enough to not get fired—like filing expenses or updating Jira tickets. Great PMs protect 40% of their calendar for Leverage work."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:02:31",
+      "timestamp_end": "00:03:00",
+      "text": "You talk a lot about 'High Agency'. How do you define High Agency in product management?"
+    },
+    {
+      "speaker": "Shreyas Doshi",
+      "timestamp_start": "00:03:01",
+      "timestamp_end": "00:04:45",
+      "text": "High agency is the ability to bend reality to your will to achieve a goal, despite overwhelming constraints, bureaucracy, or lack of resources. A low-agency person encounters a roadblock—say, legal says 'no' or engineering has no bandwidth—and they throw their hands up and say 'I tried, but we can't do it'. A high-agency person asks: 'What conditions would need to be true for legal to approve this in 48 hours?' or 'Can we build an unscalable prototype using no-code tools to validate the demand first?' High agency is the single strongest predictor of exceptional product leadership."
+    },
+    {
+      "speaker": "Lenny Rachitsky",
+      "timestamp_start": "00:04:46",
+      "timestamp_end": "00:05:15",
+      "text": "How do you run a Pre-mortem that actually prevents project failure?"
+    },
+    {
+      "speaker": "Shreyas Doshi",
+      "timestamp_start": "00:05:16",
+      "timestamp_end": "00:06:50",
+      "text": "Before launching a major initiative, bring the entire core team together for 60 minutes. State the premise: 'Imagine it is one year from today, and this product launch was an absolute, catastrophic disaster. It failed completely. Write down the top 3 reasons why it failed.' Everyone writes silently for 10 minutes, then shares. This removes optimism bias and psychological safety barriers, because people are now rewarded for highlighting risks rather than labeled as pessimistic. You then take the top 5 failure modes and assign specific owners to mitigate them before writing code."
+    }
+  ]
+}
