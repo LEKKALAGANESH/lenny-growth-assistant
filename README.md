@@ -128,6 +128,20 @@ Run the standalone diagnostic script for a human-readable health check:
 python scripts/verify_system.py
 ```
 
+## Troubleshooting
+
+**`ModuleNotFoundError: No module named 'backend'`**
+You're running uvicorn from the repo root (`uvicorn backend.app.main:app ...`). `backend/` intentionally has no `__init__.py`, and its internal code imports as `from app.xxx import ...`, so it must run with `backend/` as the working directory. Fix:
+```bash
+cd backend
+python -m app.rag.ingestion
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+Or just run `scripts/run_local.bat` (Windows) / `scripts/run_local.sh` (macOS/Linux), which `cd` into `backend/` automatically.
+
+**`Module not found: Can't resolve '@/lib/api'` or `'@/lib/constants'`**
+Fixed — both `frontend/lib/api.js` (the backend API client) and `frontend/lib/constants.js` (`STARTER_PROMPTS` used by `QuickPrompts.js`) are present and tracked in this repo. If you still hit this on a fresh clone, check that `.gitignore`'s `lib/` rule is scoped to `/lib/` and `/backend/lib/` (not a bare `lib/`) — a bare rule silently swallows `frontend/lib/` too, which was the original root cause.
+
 ## Project Structure
 
 ```
