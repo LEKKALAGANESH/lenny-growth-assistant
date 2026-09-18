@@ -645,3 +645,190 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+
+/* Responsive Layout
+ * Desktop: sidebar + chat, with optional 50/50 artifact split.
+ * Tablet/mobile: sidebar becomes an overlay; artifact replaces chat
+ * so both panes remain usable instead of compressing side-by-side.
+ */
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 240px;
+  }
+
+  .chat-pane.shrunk {
+    max-width: 55%;
+  }
+
+  .messages-container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .chat-input-wrapper {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 820px) {
+  .app-container {
+    position: relative;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(300px, 86vw);
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-workspace {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .navbar {
+    padding: 0 14px;
+  }
+
+  .navbar-controls {
+    gap: 8px;
+  }
+
+  .health-badge {
+    display: none;
+  }
+
+  .split-view-container {
+    position: relative;
+  }
+
+  .chat-pane,
+  .chat-pane.shrunk,
+  .artifact-pane {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .artifact-pane {
+    position: absolute;
+    inset: 0;
+    border-left: 0;
+    z-index: 25;
+  }
+
+  .messages-container {
+    padding: 18px 14px;
+    gap: 14px;
+  }
+
+  .message-row {
+    max-width: none;
+  }
+
+  .quick-prompts-container {
+    grid-template-columns: 1fr;
+    margin-top: 20px;
+  }
+
+  .chat-input-wrapper {
+    padding: 10px 14px 14px;
+  }
+
+  .artifact-header {
+    padding: 0 12px;
+  }
+
+  .artifact-title {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .navbar {
+    height: 52px;
+    padding: 0 10px;
+  }
+
+  .navbar-brand {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .navbar-brand > * {
+    min-width: 0;
+  }
+
+  .model-selector {
+    max-width: 128px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .messages-container {
+    padding: 14px 10px;
+  }
+
+  .message-row {
+    gap: 8px;
+  }
+
+  .message-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .message-content {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  .citation-badges-container {
+    gap: 4px;
+  }
+
+  .citation-chip {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+
+  .chat-input-wrapper {
+    padding: 8px 10px 10px;
+  }
+
+  .chat-input-box {
+    padding: 7px 9px;
+  }
+
+  .artifact-actions {
+    gap: 4px;
+  }
+
+  .artifact-tab-btn {
+    padding: 4px 7px;
+  }
+
+  .artifact-action-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .artifact-title {
+    max-width: 35vw;
+  }
+}
